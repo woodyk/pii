@@ -75,19 +75,6 @@ To extract emails and phone numbers from a PDF file and output results in JSON f
 python pii.py path/to/document.pdf --labels email phone --json
 ```
 
-## Dependencies
-
-- `pytesseract`: for OCR operations
-- `requests`: for making HTTP requests to fetch webpage content
-- `beautifulsoup4`: for parsing HTML and extracting text
-- `pandas`: for processing Excel files
-- `pdfplumber`: for extracting text from PDF files
-- `python-docx`: for working with Word documents
-- `mss`: for capturing screenshots
-- `python-speech-recognition`: for transcribing audio files
-
-Additional dependencies can be found in the `requirements.txt` file.
-
 ## Contributing
 
 Contributions are welcome! Please submit a pull request or open an issue to discuss potential changes.
