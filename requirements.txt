@@ -1,0 +1,16 @@
+python-magic
+pytesseract
+requests
+pandas
+spacy
+speechrecognition
+pdfplumber
+beautifulsoup4
+python-docx
+mss
+pydub
+nltk
+presidio_analyzer
+tf-keras
+transformers
+
