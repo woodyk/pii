@@ -1,6 +1,6 @@
-# pii.py
+# pii 
 
-`pii.py` is a Python script designed for the extraction of Personally Identifiable Information (PII) from various data sources. By leveraging Optical Character Recognition (OCR) and regex pattern matching, it enables users to capture sensitive information from images, documents, URLs, and even audio files. This repository is a collection of OSINT and PII extraction experiments.
+`pii` is a Python script designed for the extraction of Personally Identifiable Information (PII) from various data sources. By leveraging Optical Character Recognition (OCR) and regex pattern matching, it enables users to capture sensitive information from images, documents, URLs, and even audio files. This repository is a collection of OSINT and PII extraction experiments.
 
 ## Features
 
