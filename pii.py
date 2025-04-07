@@ -5,7 +5,7 @@
 # Author: Wadih Khairallah
 # Description: 
 # Created: 2024-12-01 12:12:08
-# Modified: 2025-04-04 01:26:15
+# Modified: 2025-04-06 18:40:37
 
 
 from patterns import PATTERNS
@@ -44,6 +44,22 @@ console = Console()
 log = console.log
 
 def clean_path(path):
+    """
+    Clean and validate a file path or URL.
+
+    Args:
+        path (str): The input path or URL to clean.
+
+    Returns:
+        str: The cleaned and validated path, or None if the path is invalid.
+            - For URLs: returns the original URL
+            - For file paths: returns the absolute path if file/directory exists
+            - For invalid paths: returns None
+
+    Note:
+        This function expands user paths (e.g., '~') and converts to absolute paths.
+        It only returns a path if it points to an existing file or directory.
+    """
     if is_url(path):
         return path
     else:
@@ -54,7 +70,21 @@ def clean_path(path):
             return path
 
 def get_screenshot():
-    ''' Take screenshot and return text object for all text found in the image '''
+    """
+    Capture a screenshot of all monitors and save it as a temporary image file.
+
+    This function uses the MSS library to capture a screenshot spanning all available monitors.
+    It calculates the total bounding box that encompasses all monitors by finding the furthest
+    left, top, right, and bottom points across all displays. The screenshot is then saved as
+    a grayscale PNG image in the system's temporary directory.
+
+    Returns:
+        str: Absolute path to the saved screenshot image file (/tmp/sym_screenshot.png).
+
+    Note:
+        The function converts the captured BGRA image to RGB and then to grayscale before saving.
+        The temporary file is not automatically deleted and should be managed by the caller.
+    """
     # Screenshot storage path
     path = r'/tmp/sym_screenshot.png'
 
@@ -80,6 +110,20 @@ def get_screenshot():
     return path
 
 def extract_exif(file_path):
+    """
+    Extract EXIF metadata from a file using exiftool.
+
+    Args:
+        file_path (str): Path to the file to extract EXIF data from.
+
+    Returns:
+        dict: Dictionary containing EXIF metadata if successful, None otherwise.
+            The dictionary structure matches exiftool's JSON output format.
+
+    Note:
+        This function requires 'exiftool' to be installed on the system.
+        It silently handles failures and returns None if exiftool fails or is not available.
+    """
     exif_data = None
     try:
         result = subprocess.run(['exiftool', '-j', file_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -130,9 +174,16 @@ def process_screenshot(patterns, labels=None, output_json=False):
     Capture screenshot across all monitors and run PII extraction on the OCR text.
 
     Args:
-        patterns (list): List of regex patterns.
+        patterns (list): List of regex patterns to search for in the text.
         labels (list, optional): Specific labels to extract. Defaults to None.
         output_json (bool, optional): Whether to output results in JSON format. Defaults to False.
+
+    Returns:
+        dict: Dictionary containing extracted data grouped by pattern labels.
+            Returns None if no text could be extracted from the screenshot.
+
+    Note:
+        The function automatically cleans up the temporary screenshot file after processing.
     """
     screenshot_path = get_screenshot()
     text = None
@@ -165,12 +216,13 @@ def process_url(url, patterns, labels=None, output_json=False):
 
     Args:
         url (str): The URL to process.
-        patterns (list): List of regex patterns.
+        patterns (list): List of regex patterns to search for in the text.
         labels (list, optional): Specific labels to extract. Defaults to None.
         output_json (bool, optional): Whether to output results in JSON format. Defaults to False.
 
     Returns:
-        dict: Extracted data from the web page.
+        dict: Dictionary containing extracted data grouped by pattern labels.
+            Returns None if no text could be extracted from the URL.
     """
     text = text_from_url(url)
     if text:
@@ -186,6 +238,19 @@ def process_url(url, patterns, labels=None, output_json=False):
         return None
 
 def remove_special_chars(values):
+    """
+    Remove special characters from a string or list of strings.
+
+    Args:
+        values (str or list): Input string or list of strings to clean.
+
+    Returns:
+        str or list: Cleaned string or list of strings with special characters removed.
+            Only keeps alphanumeric characters, spaces, hyphens, periods, commas, and hashes.
+
+    Note:
+        If input is neither a string nor a list/tuple, returns the input unchanged.
+    """
     if isinstance(values, str):
         return re.sub(r"[^\-\.,\#A-Za-z0-9 ]+", "", values)
     elif isinstance(values, (list, tuple)):
@@ -193,6 +258,25 @@ def remove_special_chars(values):
     return values
 
 def extract_text(file_path):
+    """
+    Extract text content from various file types using appropriate extraction methods.
+
+    Args:
+        file_path (str): Path to the file to extract text from.
+
+    Returns:
+        str: Extracted text content from the file, or None if extraction fails.
+
+    Note:
+        Supports multiple file types including:
+        - Text files (txt, json, xml, yaml, markdown)
+        - Excel files (xls, xlsx)
+        - PDF files
+        - Word documents (docx)
+        - Images (using OCR)
+        - Audio files (using speech recognition)
+        - Other files (attempts basic text extraction)
+    """
     file_path = clean_path(file_path)
     mime_type = magic.from_file(file_path, mime=True)
     try:
@@ -232,6 +316,20 @@ def extract_text(file_path):
         return None
 
 def text_from_audio(audio_file):
+    """
+    Convert audio file to text using speech recognition.
+
+    Args:
+        audio_file (str): Path to the audio file.
+
+    Returns:
+        str: Transcribed text from the audio file, or None if transcription fails.
+
+    Note:
+        - Automatically converts non-WAV files to WAV format before processing.
+        - Uses Google Speech Recognition API for transcription.
+        - Requires internet connection for Google Speech Recognition.
+    """
     text = ""
 
     def audio_to_wav(file_path):
@@ -266,6 +364,20 @@ def text_from_audio(audio_file):
     return text
 
 def downloadImage(url):
+    """
+    Download an image from a URL and save it to a temporary location.
+
+    Args:
+        url (str): URL of the image to download.
+
+    Returns:
+        str: Path to the downloaded image file, or None if download fails.
+
+    Note:
+        - Verifies that the URL points to an image before downloading.
+        - Saves the image to the /tmp directory.
+        - Uses the original filename from the URL.
+    """
     if is_image(url):
         filename = os.path.basename(urlparse(url).path)
         save_path = os.path.join('/tmp/', filename)
@@ -283,6 +395,20 @@ def downloadImage(url):
         return None
 
 def is_image(file_path_or_url):
+    """
+    Check if a file path or URL points to an image.
+
+    Args:
+        file_path_or_url (str): File path or URL to check.
+
+    Returns:
+        bool: True if the path points to an image, False otherwise.
+
+    Note:
+        - For URLs: Checks Content-Type header
+        - For files: Uses magic library to check MIME type
+        - Returns False if any errors occur during checking
+    """
     try:
         if is_url(file_path_or_url):
             response = requests.head(file_path_or_url, allow_redirects=True)
@@ -297,11 +423,37 @@ def is_image(file_path_or_url):
         return False
 
 def is_url(path):
+    """
+    Check if a given path is a valid URL.
+
+    Args:
+        path (str): The path to check.
+
+    Returns:
+        bool: True if the path matches a URL pattern (http/https/ftp), False otherwise.
+    """
     return bool(re.match(r'^(?:http|ftp)s?://', path, re.IGNORECASE))
 
 def text_from_pdf(pdf_path):
     """
-    Extracts plain text from a PDF, including OCR for images.
+    Extract text content from a PDF file, including OCR for images.
+
+    Args:
+        pdf_path (str): Path to the PDF file.
+
+    Returns:
+        str: Extracted text content including:
+            - Document metadata
+            - Text content from each page
+            - Table content
+            - OCR text from embedded images
+            Returns empty string if extraction fails.
+
+    Note:
+        - Uses pdfplumber for text and table extraction
+        - Performs OCR on embedded images
+        - Handles PDF metadata
+        - Processes tables into tab-separated text
     """
     plain_text = ""
 
@@ -374,7 +526,23 @@ def text_from_pdf(pdf_path):
 
 def text_from_word(file_path):
     """
-    Extracts plain text from a Word (.docx) file, including text, tables, and images with OCR.
+    Extract text content from a Word (.docx) file, including text, tables, and images with OCR.
+
+    Args:
+        file_path (str): Path to the Word document.
+
+    Returns:
+        str: Extracted text content including:
+            - Paragraph text
+            - Table content (tab-separated)
+            - OCR text from embedded images
+            Returns None if extraction fails.
+
+    Note:
+        - Uses python-docx for document parsing
+        - Processes tables into tab-separated text
+        - Extracts and performs OCR on embedded images
+        - Handles errors gracefully for each component
     """
     file_path = clean_path(file_path)
     doc = Document(file_path)
@@ -423,6 +591,20 @@ def text_from_word(file_path):
     return plain_text
 
 def text_from_excel(file_path):
+    """
+    Convert Excel file content to CSV format text.
+
+    Args:
+        file_path (str): Path to the Excel file (.xls or .xlsx).
+
+    Returns:
+        str: CSV formatted text content of the Excel file.
+            Returns None if conversion fails.
+
+    Note:
+        Uses pandas to read Excel and convert to CSV format.
+        Handles both .xls and .xlsx file formats.
+    """
     file_path = clean_path(file_path)
     try:
         df = pd.read_excel(file_path)
@@ -433,7 +615,18 @@ def text_from_excel(file_path):
 
 def text_from_image(file_path):
     """
-    Extracts plain text from an image using OCR.
+    Extract text from an image using OCR (Optical Character Recognition).
+
+    Args:
+        file_path (str): Path to the image file.
+
+    Returns:
+        str: Extracted text from the image, or None if extraction fails.
+
+    Note:
+        - Uses Tesseract OCR engine through pytesseract
+        - Supports various image formats (PNG, JPEG, TIFF, etc.)
+        - Returns stripped text to remove leading/trailing whitespace
     """
     file_path = clean_path(file_path)
     try:
@@ -446,7 +639,20 @@ def text_from_image(file_path):
         return None
 
 def calculate_entropy(data):
-    """Calculate Shannon entropy to assess randomness in the file."""
+    """
+    Calculate Shannon entropy to assess randomness in binary data.
+
+    Args:
+        data (bytes): Binary data to analyze.
+
+    Returns:
+        str: Calculated Shannon entropy value as a string.
+            Returns "0" if input data is empty.
+
+    Note:
+        Higher entropy values indicate more random/compressed data.
+        Maximum entropy for byte data is 8 bits (completely random).
+    """
     if not data:
         return "0"
     counter = Counter(data)
@@ -455,7 +661,22 @@ def calculate_entropy(data):
     return str(entropy)
 
 def extract_strings(data):
-    """Extract readable ASCII and Unicode strings."""
+    """
+    Extract readable ASCII and Unicode strings from binary data.
+
+    Args:
+        data (bytes): Binary data to extract strings from.
+
+    Returns:
+        list: List of extracted strings, including:
+            - ASCII strings (4 or more printable characters)
+            - UTF-16 strings (4 or more characters)
+
+    Note:
+        - Minimum string length is 4 characters
+        - Handles both ASCII and UTF-16 encoded strings
+        - Ignores non-printable characters
+    """
     ascii_regex = re.compile(rb'[ -~]{4,}')  # ASCII strings of length >= 4
     unicode_regex = re.compile(rb'(?:[\x20-\x7E][\x00]){4,}')  # Unicode UTF-16 strings
     strings = []
@@ -465,7 +686,26 @@ def extract_strings(data):
 
 def text_from_other(file_path):
     """
-    Extracts information from a file of unknown or unsupported type and returns plain text output.
+    Extract information from files of unknown or unsupported types.
+
+    Args:
+        file_path (str): Path to the file.
+
+    Returns:
+        str: A text report containing:
+            - File metadata (path, size, timestamps, permissions)
+            - MIME type
+            - File hashes (SHA-256, MD5)
+            - Readable strings found in the file
+            - Magic numbers
+            - EXIF data (if available)
+            - Entropy analysis
+            Returns None if processing fails.
+
+    Note:
+        - Provides detailed analysis for binary and unknown file types
+        - Extracts both metadata and content-based information
+        - Includes security-relevant information (hashes, permissions)
     """
     file_path = clean_path(file_path)
     file_stats = os.stat(file_path)
@@ -514,11 +754,17 @@ def text_from_other(file_path):
 def validate_patterns(patterns):
     """
     Validate regex patterns to ensure they are correctly defined.
-    Reports invalid patterns without stopping execution.
+
     Args:
-        patterns (list): List of regex patterns.
+        patterns (list): List of regex patterns to validate.
+
     Returns:
-        list: List of valid regex patterns.
+        list: List of valid regex patterns, excluding any invalid ones.
+
+    Note:
+        - Reports invalid patterns without stopping execution
+        - Invalid patterns are skipped with an error message
+        - Returns empty list if all patterns are invalid
     """
     valid_patterns = []
     for pattern in patterns:
@@ -531,12 +777,24 @@ def validate_patterns(patterns):
 
 def extract_patterns(text, patterns):
     """
-    Extract matches from a flat list of regex patterns.
+    Extract matches from text using a list of regex patterns.
+
     Args:
         text (str): Input text to analyze.
         patterns (list): List of validated regex patterns.
+
     Returns:
-        dict: Extracted matches grouped by inferred labels.
+        dict: Dictionary of matches grouped by pattern labels, where:
+            - Keys are labels extracted from pattern names (?P<label>)
+            - Values are lists of dictionaries containing:
+                - value: The matched text
+                - start: Start position in text
+                - end: End position in text
+
+    Note:
+        - Only extracts patterns with named groups (?P<label>)
+        - Deduplicates matches within each label group
+        - Preserves match positions for context
     """
     matches_by_label = {}
     for pattern in patterns:
@@ -559,11 +817,21 @@ def extract_patterns(text, patterns):
 def stitch_results(text, matches_by_label):
     """
     Stitch contiguous matches into cohesive results for each label.
+
     Args:
-        text (str): Input text to analyze.
-        matches_by_label (dict): Extracted matches grouped by label.
+        text (str): Original input text.
+        matches_by_label (dict): Dictionary of matches grouped by label.
+
     Returns:
-        dict: Stitched matches grouped by label.
+        dict: Dictionary of stitched matches grouped by label, where:
+            - Keys are pattern labels
+            - Values are lists of unique, stitched match strings
+
+    Note:
+        - Combines adjacent or overlapping matches
+        - Includes text between matches if they are contiguous
+        - Deduplicates final results
+        - Preserves original text formatting
     """
     stitched_results = {}
     for label, matches in matches_by_label.items():
@@ -593,14 +861,23 @@ def stitch_results(text, matches_by_label):
 
     return stitched_results
 
-
 def sanitize_results(results):
     """
-    Sanitize extracted matches to correct formatting issues and deduplicate results.
+    Sanitize extracted matches to correct formatting issues and remove duplicates.
+
     Args:
-        results (dict): Extracted matches grouped by label.
+        results (dict): Dictionary of matches grouped by label.
+
     Returns:
-        dict: Sanitized matches grouped by label.
+        dict: Dictionary of sanitized matches grouped by label, where:
+            - Keys are pattern labels
+            - Values are lists of unique, sanitized match strings
+
+    Note:
+        - Normalizes Windows path formatting
+        - Removes trailing periods
+        - Deduplicates matches within each label
+        - Preserves valid special characters
     """
     sanitized_results = {}
     for label, matches in results.items():
@@ -618,14 +895,19 @@ def sanitize_results(results):
         sanitized_results[label] = list(set(sanitized_matches))
     return sanitized_results
 
-
 def get_labels(patterns):
     """
     Retrieve available labels from the regex patterns.
+
     Args:
         patterns (list): List of regex patterns.
+
     Returns:
-        list: List of unique labels found in the patterns.
+        list: Sorted list of unique labels found in the patterns.
+            Labels are extracted from named groups (?P<label>).
+
+    Note:
+        Only includes labels from patterns using the (?P<label>) syntax.
     """
     labels = set()
     for pattern in patterns:
@@ -636,13 +918,22 @@ def get_labels(patterns):
 
 def extract(input_data, patterns, labels=None):
     """
-    Central access point for extraction.
+    Central access point for pattern extraction from input text.
+
     Args:
         input_data (str): Input text data to analyze.
         patterns (list): List of regex patterns.
         labels (list or str, optional): Labels to filter extraction. Defaults to None.
+
     Returns:
-        dict: Extracted matches grouped by label.
+        dict: Dictionary of extracted and processed matches grouped by label.
+            Results are validated, stitched, and sanitized before returning.
+
+    Note:
+        - Handles both single label (str) and multiple labels (list)
+        - Filters patterns based on requested labels if specified
+        - Sanitizes input text to handle non-printable characters
+        - Processes results through validation, extraction, stitching, and sanitization
     """
     # Normalize labels to a list if a single string is provided
     if isinstance(labels, str):
@@ -676,13 +967,18 @@ def process_file(file_path, patterns, labels=None, output_json=False):
     Extract and process text from a given file.
 
     Args:
-        file_path (str): Path to the file.
+        file_path (str): Path to the file to process.
         patterns (list): List of regex patterns.
         labels (list, optional): Specific labels to extract. Defaults to None.
         output_json (bool, optional): Whether to output results in JSON format. Defaults to False.
 
     Returns:
-        dict: Extracted data from the file.
+        dict: Dictionary of extracted data from the file, or None if extraction fails.
+
+    Note:
+        - Supports multiple file types through the extract_text function
+        - Can output results in both JSON and human-readable formats
+        - Handles extraction failures gracefully
     """
     text = extract_text(file_path)
     if text:
@@ -699,14 +995,20 @@ def process_file(file_path, patterns, labels=None, output_json=False):
 
 def process_directory(directory_path, patterns, labels=None, output_json=False, serial=False):
     """
-    Recursively process all files in a directory, aggregating results by default.
+    Recursively process all files in a directory.
 
     Args:
-        directory_path (str): Path to the directory.
+        directory_path (str): Path to the directory to process.
         patterns (list): List of regex patterns.
         labels (list, optional): Specific labels to extract. Defaults to None.
         output_json (bool, optional): Whether to output results in JSON format. Defaults to False.
-        serial (bool, optional): If set, process each file separately. Defaults to False.
+        serial (bool, optional): If True, process each file separately. Defaults to False.
+
+    Note:
+        - Recursively walks through all subdirectories
+        - Can aggregate results across all files or process each file separately
+        - Supports both JSON and human-readable output formats
+        - Handles large directories efficiently
     """
     results = {} if serial else {}
 
@@ -746,6 +1048,19 @@ def process_directory(directory_path, patterns, labels=None, output_json=False, 
                     print(f"  - {match}")
 
 def display_results(results, title="PII Extraction Results"):
+    """
+    Display extraction results in a formatted table.
+
+    Args:
+        results (dict): Dictionary of results grouped by label.
+        title (str, optional): Title for the results table. Defaults to "PII Extraction Results".
+
+    Note:
+        - Uses rich library for formatted console output
+        - Displays results in a table with rounded borders
+        - Highlights matches in green
+        - Handles multi-line results with proper wrapping
+    """
     table = Table(title=title, box=box.ROUNDED, expand=True, show_lines=True)
     table.add_column("Label", style="bold cyan", no_wrap=True)
     table.add_column("Matches", style="white", overflow="fold")
@@ -759,6 +1074,18 @@ def display_results(results, title="PII Extraction Results"):
     console.print(Panel(table, border_style="blue"))
 
 def print_labels_in_columns(labels):
+    """
+    Print a list of labels in multiple columns to maximize screen space.
+
+    Args:
+        labels (list): List of labels to display.
+
+    Note:
+        - Automatically adjusts column width based on terminal size
+        - Sorts labels alphabetically
+        - Adds proper spacing between columns
+        - Handles labels of varying lengths
+    """
     labels.sort()
     term_width = shutil.get_terminal_size((80, 20)).columns
     max_label_len = max(len(label) for label in labels) + 2  # add spacing
@@ -774,8 +1101,24 @@ def print_labels_in_columns(labels):
 
 def main():
     """
-    Command-line interface for the extraction tool.
-    Parses arguments and processes files, directories, or URLs.
+    Command-line interface for the pattern extraction tool.
+
+    This function serves as the entry point for the command-line tool, handling:
+    - Argument parsing
+    - Input validation
+    - Processing of files, directories, URLs, and screenshots
+    - Output formatting
+
+    Command-line arguments:
+        path: File, directory, URL, or 'screenshot' keyword
+        --labels: Specific labels to extract (optional)
+        --json: Output results in JSON format (optional)
+        --serial: Process directory files separately (optional)
+
+    Note:
+        - Displays help and available labels if no arguments provided
+        - Supports multiple input types (file, directory, URL, screenshot)
+        - Handles errors gracefully with informative messages
     """
     parser = argparse.ArgumentParser(
         description="Extract patterns from files, directories, or URLs."
