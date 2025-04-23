@@ -5,7 +5,7 @@
 # Author: Wadih Khairallah
 # Description: 
 # Created: 2024-12-02 22:52:20
-# Modified: 2025-03-24 14:18:16
+# Modified: 2025-04-23 17:30:34
 
 # CREDIT CARD NUMBERS
 CREDIT_CARD_PATTERNS = [
@@ -19,17 +19,26 @@ CREDIT_CARD_PATTERNS = [
     r"(?P<credit_card>\b(?:6(?:011|5[0-9]{2})[0-9]{12})\b)", # Discover
 ]
 
-# SAFE & STRUCTURED PHONE NUMBER PATTERNS FOR EXTRACTION
+# PHONE NUMBER PATTERNS (strict, international-aware, no bare digits)
 PHONE_PATTERNS = [
-    # E.164 format (e.g., +1234567890, up to 15 digits)
-    r"(?P<phone_number>\b\+?[1-9]\d{9,14}\b)",
+    # International (e.g. +44 20 7946 0958, +91-9876543210)
+    r"(?P<phone_number>\b\+\d{1,3}[ -.]?\(?\d{1,4}\)?[ -.]?\d{1,4}[ -.]?\d{2,4}[ -.]?\d{2,4}\b)",
 
-    # North American: (123) 456-7890 or (123)456-7890
-    r"(?P<phone_number>\b\(\d{3}\)\s?\d{3}[-.\s]?\d{4}\b)",
+    # US/Canada with country code (e.g. 1-123-456-7890, +1 (123) 456-7890)
+    r"(?P<phone_number>\b(?:\+?1)[ -.]?\(?\d{3}\)?[ -.]?\d{3}[ -.]?\d{4}\b)",
 
-    # North American: 123-456-7890 or 123.456.7890
-    r"(?P<phone_number>\b\d{3}[-.\s]?\d{3}[-.\s]?\d{4}\b)",
+    # US/Canada local (e.g. (123) 456-7890, 123-456-7890, 123.456.7890)
+    r"(?P<phone_number>\b\(?\d{3}\)?[ -.]?\d{3}[ -.]?\d{4}\b)"
 ]
+
+
+PHONE_PATTERNS = [
+    r"(?P<phone_number>\+?\d{1,3}[ -.]*\(?\d{2,4}\)?[ -.]*\d{3,4}[ -.]*\d{4})",
+    r"(?P<phone_number>1[ -.]*\(?\d{3}\)?[ -.]*\d{3}[ -.]*\d{4})",
+    r"(?P<phone_number>\(?\d{3}\)?[ -.]*\d{3}[ -.]*\d{4})"
+    # Removed fallback 10–12 digit pattern
+]
+
 
 
 # MONTHS
@@ -84,12 +93,17 @@ MACADDRESS_PATTERNS = [
 
 # IPV6
 IPV6_PATTERNS = [
-    r"\b(?P<ipv6>(?:[0-9a-fA-F]{1,4}|)(:)([0-9a-fA-F]{1,4}))\b",
-    r"\b(?P<ipv6>(?:[0-9a-fA-F]{1,4}))?!\.(\d{1,3}\.){3}",
-    r"\b(?P<ipv6>(?:[0-9a-fA-F]{1,4}))?!.*::.*::",
-    r"(?P<ipv6>(?:([0-9a-fA-F]{4}(:)[0-9a-fA-F]{3}(::))))",
-    r"\b(?P<ipv6>(?:[0-9a-fA-F]{4}(::)))",
-    r"(?P<ipv6>(?:(::|:)(([0-9a-fA-F]{4}+)|\d\b|([0-9a-fA-F]{3})(:)[0-9a-fA-F](::))))",
+    # Fully expanded (8 groups)
+    r"(?P<ipv6>\b(?:[A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4}\b)",
+
+    # Compressed (::) with 1–6 groups around it
+    r"(?P<ipv6>\b(?:[A-Fa-f0-9]{1,4}:){1,7}:|:(?::[A-Fa-f0-9]{1,4}){1,7}\b)",
+
+    # Compressed with optional embedded IPv4
+    r"(?P<ipv6>\b(?:[A-Fa-f0-9]{1,4}:){6,6}(?:\d{1,3}\.){3}\d{1,3}\b)",
+
+    # Link-local with zone index
+    r"(?P<ipv6>\bfe80::[A-Fa-f0-9:%]{1,}\b)"
 ]
 
 # COMMON TECH TERM CATAGORIES
@@ -116,7 +130,6 @@ MISC_PATTERNS = [
     r"(?P<unix_path>(?:[ \t\n]|^)/(?:[a-zA-Z0-9_.-]+/)*[a-zA-Z0-9_.-]+)",
     r"(?P<windows_path>([a-zA-Z]:\\)[\w\\.-]+)",  # Windows file paths
     r"(?P<email>[\w.-]+@([\w-]+\.)+[\w-]+)",  # Email addresses
-    r"(?P<url>([a-zA-Z]+):\/\/[a-zA-Z0-9\-._~:/?#[\]@!$&'()*+,;=%]+)",
     r"(?P<ini>\[\w+\])",                     # INI sections
     #r"(?P<json>{.*?}|\[.*?\])",              # JSON-like objects
     r"(?P<hex_number>\b0x[0-9a-fA-F]+\b)",   # Hexadecimal numbers
@@ -126,42 +139,48 @@ MISC_PATTERNS = [
     r"(?P<temperature>\b-?\d+(\.\d+)?[°]?[CF]\b)"
 ]
 
+# URL PATTERNS (Comprehensive RFC3986-style, all schemes)
+URL_PATTERNS = [
+    r"(?P<url>[a-zA-Z][a-zA-Z0-9+.-]*://[^\s<>\]\[(){}\"']+)"
+]
+
+
 DOCUMENT_ANALYSIS_PATTERNS = [
     # Interrogative context with surrounding words
-    r"(?P<interrogative_context>(?:\b\w+\b\s+){2,5}\b(how|why|what|when|where|who)\b(?:\s+\b\w+\b){2,5})",
+    #r"(?P<interrogative_context>(?:\b\w+\b\s+){2,5}\b(how|why|what|when|where|who)\b(?:\s+\b\w+\b){2,5})",
 
     # Reporting statements with surrounding context
-    r"(?P<reporting_statement>(?:\b\w+\b\s+){2,5}\b\w+(?:\s\w+)*\s+(said|stated|reported|mentioned|claimed|explained|noted|suggested)\b(?:\s+\".*?\"|\s+\b.*?\b[.!?]))",
+    #r"(?P<reporting_statement>(?:\b\w+\b\s+){2,5}\b\w+(?:\s\w+)*\s+(said|stated|reported|mentioned|claimed|explained|noted|suggested)\b(?:\s+\".*?\"|\s+\b.*?\b[.!?]))",
 
     # Entity names after relational prepositions with meaningful context
-    r"(?P<entity_name>(?:\b\w+\b\s+){2,5}\b(by|from|to|with|about|for)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)*)(?:\s+\b\w+\b){2,5})",
+    #r"(?P<entity_name>(?:\b\w+\b\s+){2,5}\b(by|from|to|with|about|for)\s+([A-Z][a-z]+(?:\s[A-Z][a-z]+)*)(?:\s+\b\w+\b){2,5})",
 
     # All-caps phrases with contextual information
-    r"(?P<all_caps_phrase>(?:\b\w+\b\s+){2,5}\b[A-Z]{2,}(?:\s+[A-Z]{2,})*\b(?:\s+\b\w+\b){2,5})",
+    #r"(?P<all_caps_phrase>(?:\b\w+\b\s+){2,5}\b[A-Z]{2,}(?:\s+[A-Z]{2,})*\b(?:\s+\b\w+\b){2,5})",
 
     # Quoted text with nearby context
-    r"(?P<quoted_text>(?:\b\w+\b\s+){2,5}\".*?\"(?:\s+\b\w+\b){2,5})",
+    #r"(?P<quoted_text>(?:\b\w+\b\s+){2,5}\".*?\"(?:\s+\b\w+\b){2,5})",
 
     # Action contexts with surrounding context
-    r"(?P<action_context>(?:\b\w+\b\s+){2,5}\b\w+(?:\s+\w+)*\s+(completed|developed|initiated|threatened|investigated)\s+\b.*?[.!?](?:\s+\b\w+\b){2,5})",
+    #r"(?P<action_context>(?:\b\w+\b\s+){2,5}\b\w+(?:\s+\w+)*\s+(completed|developed|initiated|threatened|investigated)\s+\b.*?[.!?](?:\s+\b\w+\b){2,5})",
 
     # Possessive context with nearby context
-    r"(?P<possessive_context>(?:\b\w+\b\s+){2,5}(\b[A-Z][a-z]+(?:'s|’s)\s+\w+)|\b(owned by|reported by|handled by)\s+([A-Z][a-z]+)(?:\s+\b\w+\b){2,5})",
+    #r"(?P<possessive_context>(?:\b\w+\b\s+){2,5}(\b[A-Z][a-z]+(?:'s|’s)\s+\w+)|\b(owned by|reported by|handled by)\s+([A-Z][a-z]+)(?:\s+\b\w+\b){2,5})",
 
     # Proper nouns with meaningful surroundings
-    r"(?P<proper_noun>(?:\b\w+\b\s+){2,5}\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b(?:\s+\b\w+\b){2,5})",
+    #r"(?P<proper_noun>(?:\b\w+\b\s+){2,5}\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b(?:\s+\b\w+\b){2,5})",
 
     # Adjectives indicating criticality or importance with nearby context
-    r"(?P<adjective_context>(?:\b\w+\b\s+){2,5}\b(critical|urgent|significant|dangerous|illegal|fraudulent)\b\s+\w+(?:\s+\b\w+\b){2,5})",
+    #r"(?P<adjective_context>(?:\b\w+\b\s+){2,5}\b(critical|urgent|significant|dangerous|illegal|fraudulent)\b\s+\w+(?:\s+\b\w+\b){2,5})",
 
     # Question context with sufficient surrounding words
-    r"(?P<question_context>(?:\b\w+\b\s+){2,5}\b(who|what|why|how|where|when)\b(?:\s+\b\w+\b){2,5}[?])",
+    #r"(?P<question_context>(?:\b\w+\b\s+){2,5}\b(who|what|why|how|where|when)\b(?:\s+\b\w+\b){2,5}[?])",
 
     # Numbers with measurement terms and context
-    r"(?P<number_context>(?:\b\w+\b\s+){2,5}\b\d{1,3}(?:,\d{3})*(?:\.\d+)?(?:\s+(units|percent|completion|days|weeks))?\b(?:\s+\b\w+\b){2,5})",
+    #r"(?P<number_context>(?:\b\w+\b\s+){2,5}\b\d{1,3}(?:,\d{3})*(?:\.\d+)?(?:\s+(units|percent|completion|days|weeks))?\b(?:\s+\b\w+\b){2,5})",
 
     # Threat-related phrases with meaningful context
-    r"(?P<threat_context>(?:\b\w+\b\s+){2,5}(threat|risk|danger|exploit)(?:\s+\b\w+\b){2,5}[.!?])",
+    #r"(?P<threat_context>(?:\b\w+\b\s+){2,5}(threat|risk|danger|exploit)(?:\s+\b\w+\b){2,5}[.!?])",
 ]
 
 # SOCIAL SECURITY NUMBERS (US)
@@ -212,11 +231,11 @@ PASSPORT_PATTERNS = [
 
 # OTHER MISC NUMBER PATTERNS
 ANALYZE_PATTERNS = [
-    r"(?P<analyze>\b[A-Za-z0-9]{20,100}\b)",
-    r"\b(?P<analyze>(?=[A-Za-z0-9]*[A-Za-z])(?=[A-Za-z0-9]*\d)[A-Za-z0-9]{6,20}\b)",
-    r"\b(?P<analyze>\d{8,20}\b)",
-    r"\b(?P<analyze>[A-Z]{8,20}\b)",
-    r"\b(?P<analyze>(?:[A-Za-z0-9]{2}[,:|.-]([A-Za-z0-9]{2}|)){4,20})\b",
+    #r"(?P<analyze>\b[A-Za-z0-9]{20,100}\b)",
+    #r"\b(?P<analyze>(?=[A-Za-z0-9]*[A-Za-z])(?=[A-Za-z0-9]*\d)[A-Za-z0-9]{6,20}\b)",
+    #r"\b(?P<analyze>\d{8,20}\b)",
+    #r"\b(?P<analyze>[A-Z]{8,20}\b)",
+    #r"\b(?P<analyze>(?:[A-Za-z0-9]{2}[,:|.-]([A-Za-z0-9]{2}|)){4,20})\b",
 ]
 
 # POSTAL / ZIP CODE PATTERNS (US + international)
@@ -250,6 +269,7 @@ PATTERNS = (
     ROUTING_NUMBER_PATTERNS +
     SWIFT_CODE_PATTERNS +
     PASSPORT_PATTERNS +
-    POSTAL_CODE_PATTERNS
+    POSTAL_CODE_PATTERNS +
+    URL_PATTERNS
 )
 

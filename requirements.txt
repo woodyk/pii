@@ -13,4 +13,4 @@ nltk
 presidio_analyzer
 tf-keras
 transformers
-
+pycountry
