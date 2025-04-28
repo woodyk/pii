@@ -1,80 +1,102 @@
-# pii 
+# PII - Personal Identifiable Information Extractor
 
-`pii` is a Python script designed for the extraction of Personally Identifiable Information (PII) from various data sources. By leveraging Optical Character Recognition (OCR) and regex pattern matching, it enables users to capture sensitive information from images, documents, URLs, and even audio files. This repository is a collection of OSINT and PII extraction experiments.
+## Overview
 
-## Features
+**PII** is a command-line tool and Python library for extracting Personal Identifiable Information (PII) or any labeled patterns from files, directories, URLs, or live screenshots.
 
-- **Screenshot Capture**: Take screenshots and extract text using OCR.
-- **File Processing**: Supports multiple file formats including PDF, Word, Excel, and various image/audio formats.
-- **Web Text Extraction**: Fetch and extract text from webpages.
-- **Label-Based Extraction**: Utilize custom regex patterns to filter and identify specific types of data.
-- **JSON Output**: Option to output results in JSON format.
-- **Multi-file and Directory Support**: Process files individually or aggregate results from an entire directory.
-- **Error Handling**: Alerts for issues during processing.
+It leverages a flexible set of regex patterns and structured text extraction methods to find sensitive or labeled information across various input types.
+
+- Supports file, directory, URL, and screenshot input
+- Customizable extraction by label
+- Rich CLI output or JSON format
+- Designed for extensibility and clean installation
+
+---
 
 ## Installation
 
-To run `pii.py`, ensure you have Python 3.x installed along with the required dependencies:
+You can install `pii` locally or globally using `pip` or `pipx`.
+
+From the repository root:
 
 ```bash
-pip install -r requirements.txt
+pip install .
 ```
 
-You might need to install additional system dependencies for features such as OCR and file type detection.
+or
+
+```bash
+pipx install .
+```
+
+This will install the `pii` command globally.
+
+---
 
 ## Usage
 
-### Command-Line Interface
-
-To interact with the script, you can run it from the command line. Below are the examples of how to use it.
-
-#### Capture Screenshot
+### Basic command
 
 ```bash
-python pii.py screenshot --labels <label1> <label2> --json
+pii <path_or_url_or_keyword>
 ```
 
-#### Process a File
+- `<path_or_url_or_keyword>` can be:
+  - A file path
+  - A directory
+  - A URL (`http`, `https`, or `ftp`)
+  - The word `screenshot` to capture and analyze your screen
+
+### Options
+
+| Option        | Description                                                               |
+|---------------|---------------------------------------------------------------------------|
+| `--labels`    | Comma-separated list of labels to extract (e.g., `email,phone_number`).   |
+| `--labels`    | (without value) Show all available labels.                               |
+| `--json`      | Output the results in JSON format.                                        |
+| `--serial`    | When scanning a directory, output one result per file instead of merging. |
+| `--save FILE` | Save JSON output to the specified file.                                   |
+
+### Examples
+
+Extract all available patterns from a file:
 
 ```bash
-python pii.py path/to/your/file --labels <label1> <label2> --json
+pii sample.txt
 ```
 
-#### Process a Directory
+Extract only emails and phone numbers from a directory:
 
 ```bash
-python pii.py path/to/your/directory --labels <label1> <label2>
+pii /path/to/folder --labels email,phone_number
 ```
 
-#### Process a URL
+Analyze a webpage URL:
 
 ```bash
-python pii.py <url> --labels <label1> <label2>
+pii https://example.com
 ```
 
-#### List Available Labels
-
-To see the available labels without processing anything:
+Capture and analyze a screenshot:
 
 ```bash
-python pii.py --labels
+pii screenshot
 ```
 
-### Arguments
-
-- `path`: The file path, directory path, or URL to process.
-- `--labels`: List of specific labels to extract. If empty, it will list all available labels.
-- `--json`: Outputs results in JSON format.
-- `--serial`: Processes each file separately instead of aggregating results.
-
-### Example
-
-To extract emails and phone numbers from a PDF file and output results in JSON format:
+List all available extraction labels:
 
 ```bash
-python pii.py path/to/document.pdf --labels email phone --json
+pii --labels
 ```
 
-## Contributing
+Save output as JSON:
 
-Contributions are welcome! Please submit a pull request or open an issue to discuss potential changes.
+```bash
+pii document.pdf --json --save results.json
+```
+
+---
+
+## Requirements
+
+Dependencies are listed in `requirements.txt`.
