@@ -5,8 +5,7 @@
 # Author: Wadih Khairallah
 # Description: 
 # Created: 2024-12-01 12:12:08
-# Modified: 2025-04-28 11:24:48
-
+# Modified: 2025-04-28 14:32:24
 
 from patterns import PATTERNS
 from textextract import (
@@ -17,29 +16,12 @@ from textextract import (
     )
 
 import json
-import math
 import re
 import os
-import subprocess
-import magic
-import hashlib
-import pytesseract
-import requests 
-import pandas as pd
-import speech_recognition as sr
-import pdfplumber
 import argparse
 import shutil
 
-from bs4 import BeautifulSoup
-from collections import Counter, defaultdict
-from docx import Document
-from datetime import datetime
-from mss import mss
-from urllib.parse import urlparse
-from io import StringIO
-from PIL import Image
-from pydub import AudioSegment
+from collections import defaultdict
 
 from rich.console import Console
 from rich.panel import Panel
@@ -47,7 +29,7 @@ from rich.table import Table
 from rich import box
 
 console = Console()
-log = console.log
+print = console.print
 
 def clean_value(label, value):
     value = value.strip().replace("\n", "")
@@ -99,7 +81,7 @@ def process_screenshot(patterns, labels=None, output_json=False):
             if os.path.exists(screenshot_path):
                 os.remove(screenshot_path)
         except Exception as e:
-            log(f"Failed to remove temporary screenshot: {e}")
+            print(f"Failed to remove temporary screenshot: {e}")
 
     if text:
         extracted_data = extract(text, patterns, labels)
@@ -344,50 +326,72 @@ def display_results(results, title="PII Extraction Results"):
         match_text = "\n".join(f"[green]{match}[/green]" for match in matches)
         table.add_row(f"[bold magenta]{label}[/bold magenta]", match_text)
 
-    console.print(Panel(table, border_style="blue"))
+    print(Panel(table, border_style="blue"))
+
 
 def print_labels_in_columns(labels):
     """
-    Print a list of labels in multiple columns to maximize screen space.
+    Print a list of labels in a formatted Rich table with multiple columns, no column titles.
 
     Args:
         labels (list): List of labels to display.
 
     Note:
-        - Automatically adjusts column width based on terminal size
+        - Adjusts number of columns based on terminal width
         - Sorts labels alphabetically
-        - Adds proper spacing between columns
-        - Handles labels of varying lengths
+        - Uses Rich Table for clean display
     """
     labels.sort()
     term_width = shutil.get_terminal_size((80, 20)).columns
-    max_label_len = max(len(label) for label in labels) + 2  # add spacing
+    max_label_len = max(len(label) for label in labels) + 4  # padding
     cols = max(1, term_width // max_label_len)
     rows = (len(labels) + cols - 1) // cols
 
-    for row in range(rows):
-        for col in range(cols):
-            idx = col * rows + row
-            if idx < len(labels):
-                print(labels[idx].ljust(max_label_len), end='')
-        print()
+    table = Table(box=box.ROUNDED, expand=False, show_lines=False, show_header=False)
+
+    for _ in range(cols):
+        table.add_column(no_wrap=True)
+
+    for row_idx in range(rows):
+        row = []
+        for col_idx in range(cols):
+            idx = col_idx * rows + row_idx
+            row.append(labels[idx] if idx < len(labels) else "")
+        table.add_row(*row)
+
+    print(table)
+
 
 def main():
     parser = argparse.ArgumentParser(description="Extract PII or labeled patterns from files, directories, URLs, or screenshots.")
-    parser.add_argument("path", help="Input file path, directory, URL, or screenshot keyword")
-    parser.add_argument("--labels", help="Comma-separated list of labels to extract, or use --labels list to see available")
+    parser.add_argument("path", nargs="?", help="Input file path, directory, URL, or screenshot keyword (optional if --labels used)")
+    parser.add_argument("--labels", nargs="?", const="__SHOW__", help="Comma-separated list of labels to extract. Use without value to list available labels.")
     parser.add_argument("--json", action="store_true", help="Output results in JSON format")
     parser.add_argument("--serial", action="store_true", help="Output one file per result when running on a directory")
     parser.add_argument("--save", help="Save JSON output to file (used with --json)")
     args = parser.parse_args()
 
-    if args.labels == "list":
-        print("Available labels:\n")
-        for label in get_labels(PATTERNS):
-            print(f"  - {label}")
+    if not any(vars(args).values()):
+        parser.print_help()
         return
 
-    labels = [l.strip() for l in args.labels.split(",")] if args.labels else None
+    # If --labels is used without a value, print labels cleanly
+    if args.labels == "__SHOW__":
+        labels = get_labels(PATTERNS)
+        print("\n[bold magenta]Available Labels:[/bold magenta]\n")
+        print_labels_in_columns(labels)
+        return
+
+
+    if args.labels:
+        labels = args.labels.split(",")
+        labels = [label.strip() for label in labels]
+    else:
+        labels = None
+
+    if not args.path:
+        print("[red]Error:[/red] No input path provided.")
+        return
 
     raw_path = args.path
 
@@ -402,7 +406,7 @@ def main():
     path = clean_path(raw_path)
 
     if not path:
-        print(f"Error: Path '{raw_path}' is not a valid file, directory, or URL.")
+        print(f"[red]Error:[/red] Path '{raw_path}' is not a valid file, directory, or URL.")
         return
 
     if os.path.isdir(path):
@@ -410,9 +414,7 @@ def main():
     elif os.path.isfile(path):
         process_file(path, PATTERNS, labels, args.json)
     else:
-        print(f"Error: Path '{raw_path}' is not a recognized or supported input type.")
-
+        print(f"[red]Error:[/red] Path '{raw_path}' is not a recognized or supported input type.")
 
 if __name__ == "__main__":
     main()
-
