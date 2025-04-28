@@ -5,10 +5,10 @@
 # Author: Wadih Khairallah
 # Description: 
 # Created: 2024-12-01 12:12:08
-# Modified: 2025-04-28 14:32:24
+# Modified: 2025-04-28 15:12:56
 
-from patterns import PATTERNS
-from textextract import (
+from .patterns import PATTERNS
+from .textextract import (
         extract_text,
         clean_path,
         text_from_url,

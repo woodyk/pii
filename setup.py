@@ -5,7 +5,7 @@
 # Author: Wadih Khairallah
 # Description: 
 # Created: 2025-04-28 14:40:57
-# Modified: 2025-04-28 14:49:11
+# Modified: 2025-04-28 15:12:26
 
 from setuptools import setup, find_packages
 
@@ -19,13 +19,12 @@ setup(
     version="0.1.0",
     author="Wadih Khairallah",
     description="Personal Identifiable Information (PII) extraction tool using regex patterns and text processing.",
-    packages=[],
-    py_modules=["pii", "textextract"],
+    packages=find_packages(include=["pii", "pii.*"]),
     install_requires=read_requirements(),
     entry_points={
         "console_scripts": [
-            "pii=pii:main",
-            "textextract=textextract:main",
+            "pii=pii.pii:main",
+            "textextract=pii.textextract:main"
         ],
     },
     include_package_data=True,
