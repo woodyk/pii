@@ -5,7 +5,7 @@
 # Author: Wadih Khairallah
 # Description: 
 # Created: 2025-04-28 14:40:57
-# Modified: 2025-05-05 13:40:55
+# Modified: 2025-05-05 14:05:15
 
 from setuptools import setup, find_packages
 from pathlib import Path
@@ -20,7 +20,7 @@ def read_requirements():
     ]
 
 setup(
-    name="pii-tool",
+    name="pii",
     version="0.1.0",
     author="Wadih Khairallah",
     author_email="woodyk@gmail.com",
