@@ -5,29 +5,43 @@
 # Author: Wadih Khairallah
 # Description: 
 # Created: 2025-04-28 14:40:57
-# Modified: 2025-04-28 15:12:26
+# Modified: 2025-05-05 13:40:55
 
 from setuptools import setup, find_packages
+from pathlib import Path
 
-# Read requirements.txt
+here = Path(__file__).parent
+
 def read_requirements():
-    with open("requirements.txt", "r") as f:
-        return [line.strip() for line in f if line.strip() and not line.startswith("#")]
+    return [
+        line.strip()
+        for line in (here / "requirements.txt").read_text().splitlines()
+        if line and not line.startswith("#")
+    ]
 
 setup(
-    name="pii",
+    name="pii-tool",
     version="0.1.0",
     author="Wadih Khairallah",
-    description="Personal Identifiable Information (PII) extraction tool using regex patterns and text processing.",
+    author_email="woodyk@gmail.com",
+    description="PII extraction and text-extraction tools",
+    long_description=(here / "README.md").read_text(),
+    long_description_content_type="text/markdown",
+    url="https://github.com/woodyk/pii",
     packages=find_packages(include=["pii", "pii.*"]),
     install_requires=read_requirements(),
+    python_requires=">=3.8",
     entry_points={
         "console_scripts": [
-            "pii=pii.pii:main",
-            "textextract=pii.textextract:main"
+            "pii = pii.pii:main",
+            "textextract = pii.textextract:main",
         ],
     },
     include_package_data=True,
-    python_requires=">=3.8",
+    classifiers=[
+        "Programming Language :: Python :: 3",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+    ],
 )
 

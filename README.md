@@ -1,102 +1,121 @@
-# PII - Personal Identifiable Information Extractor
+# PII Library & CLI Tool
 
-## Overview
+A Python package and command line tools for extracting Personally
+Identifiable Information (PII) and text/metadata from files, URLs,
+directories, and screenshots.
 
-**PII** is a command-line tool and Python library for extracting Personal Identifiable Information (PII) or any labeled patterns from files, directories, URLs, or live screenshots.
+## Features
 
-It leverages a flexible set of regex patterns and structured text extraction methods to find sensitive or labeled information across various input types.
-
-- Supports file, directory, URL, and screenshot input
-- Customizable extraction by label
-- Rich CLI output or JSON format
-- Designed for extensibility and clean installation
-
----
+- Extract PII patterns (emails, phone numbers, IPs, etc.) from text.
+- Extract text and metadata from various file types (PDF, Word,
+  Excel, images, audio).
+- Support for URL fetching and web page text extraction.
+- Recursive directory scans with aggregated or per-file results.
+- Screenshot capture and OCR integration.
+- Dual use as a Python library or CLI tools (`pii`, `textextract`).
 
 ## Installation
 
-You can install `pii` locally or globally using `pip` or `pipx`.
-
-From the repository root:
+Install from PyPI:
 
 ```bash
-pip install .
+pip install pii
 ```
 
-or
+Install from GitHub (latest):
 
 ```bash
-pipx install .
+pip install git+https://github.com/yourusername/pii.git
 ```
 
-This will install the `pii` command globally.
-
----
-
-## Usage
-
-### Basic command
+Development install (editable):
 
 ```bash
-pii <path_or_url_or_keyword>
+pip install -e .
 ```
 
-- `<path_or_url_or_keyword>` can be:
-  - A file path
-  - A directory
-  - A URL (`http`, `https`, or `ftp`)
-  - The word `screenshot` to capture and analyze your screen
+## Command Line Usage
 
-### Options
-
-| Option        | Description                                                               |
-|---------------|---------------------------------------------------------------------------|
-| `--labels`    | Comma-separated list of labels to extract (e.g., `email,phone_number`).   |
-| `--labels`    | (without value) Show all available labels.                               |
-| `--json`      | Output the results in JSON format.                                        |
-| `--serial`    | When scanning a directory, output one result per file instead of merging. |
-| `--save FILE` | Save JSON output to the specified file.                                   |
-
-### Examples
-
-Extract all available patterns from a file:
+### `pii`
 
 ```bash
-pii sample.txt
-```
+# Extract PII from a text file
+pii path/to/file.txt
 
-Extract only emails and phone numbers from a directory:
+# Extract PII from a URL, output as JSON
+pii https://example.com --json
 
-```bash
-pii /path/to/folder --labels email,phone_number
-```
+# Scan a directory, show per-file results
+pii /path/to/dir --serial
 
-Analyze a webpage URL:
-
-```bash
-pii https://example.com
-```
-
-Capture and analyze a screenshot:
-
-```bash
+# Capture screenshot and extract PII
 pii screenshot
+
+# Filter by specific labels (e.g., email, phone_number)
+pii path/to/file.txt --labels email phone_number
 ```
 
-List all available extraction labels:
+To list all supported PII labels:
 
 ```bash
 pii --labels
 ```
 
-Save output as JSON:
+### `textextract`
 
 ```bash
-pii document.pdf --json --save results.json
+# Extract text from a PDF or other file
+textextract document.pdf
+
+# Extract metadata instead of text
+textextract document.docx --metadata
 ```
 
----
+## Python API
 
-## Requirements
+Import and use functions directly in your code:
 
-Dependencies are listed in `requirements.txt`.
+```python
+import pii
+from pii import extract, extract_text
+
+# Extract raw text from a PDF
+text = extract_text("report.pdf")
+
+# Extract only emails and phone numbers
+data = extract(text, labels=["email", "phone_number"])
+
+# Work with file paths or URLs
+data_file = pii.file("data.csv")
+data_url = pii.url("https://example.com/data")
+```
+
+Key functions in `pii` module:
+
+- `extract(text, labels=None)`: Return dict of PII matches.
+- `file(path, labels=None)`: Extract from a single file.
+- `url(path, labels=None)`: Extract from a URL.
+- `screenshot(labels=None)`: Capture and extract from screenshot.
+- `directory(path, labels=None, serial=False)`: Scan directory.
+- `get_labels()`: List all available PII labels.
+- `display(results, title)`: Pretty-print results.
+
+Key functions in `textextract` module:
+
+- `extract_text(path)`: Extract text from various file types.
+- `text_from_url(url)`: Fetch and parse web page text.
+- `extract_metadata(path)`: Retrieve detailed file metadata.
+- `clean_path(path)`: Normalize and validate file paths.
+- `get_screenshot()`: Capture screenshot to a temp file.
+
+## Contributing
+
+Contributions are welcome! Please fork the repository, create a
+feature branch, and open a pull request with clear descriptions and
+tests.
+
+## License
+
+This project is licensed under the MIT License. See `LICENSE` file
+for details.
+
